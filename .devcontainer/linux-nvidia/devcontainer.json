@@ -1,0 +1,131 @@
+{
+	"name": "Linux - Husky Development Container NVidia",
+	"dockerFile": "Dockerfile",
+	"build": {
+		"args": {
+			"WORKSPACE": "${containerWorkspaceFolder}/ros2_ws"
+		}
+	},
+	"remoteUser": "ros",
+	"runArgs": [
+		"--network=host",
+		"--security-opt=seccomp:unconfined",
+		"--security-opt=apparmor:unconfined",
+		"--ipc=host",
+
+		// uncomment to use intel iGPU
+		"--device=/dev/dri",
+
+		// dkushn: This is needed to run the GUI applications (Linux)
+		"--volume=/dev/dri:/dev/dri", 
+		
+		// uncomment to use Nvidia GPU with Linux, https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+		"--runtime=nvidia",
+		"--gpus=all",
+		"--device=/dev/nvidia0",
+		"--device=/dev/nvidiactl",
+		"--device=/dev/nvidia-uvm",
+		"--device=/dev/nvidia-uvm-tools",
+		"--cap-add=SYS_ADMIN",
+		"--cap-add=SYS_RAWIO",
+		"--cap-add=SYS_PTRACE",
+
+		// GUI support
+		"--volume=/tmp/.X11-unix:/tmp/.X11-unix",
+		"--volume=/mnt/wslg:/mnt/wslg",
+
+		// Vulkan for rendering
+		"--volume=/etc/vulkan/icd.d:/etc/vulkan/icd.d",
+		"--volume=/etc/vulkan/implicit_layer.d:/etc/vulkan/implicit_layer.d",
+		"--volume=/usr/share/vulkan/icd.d:/usr/share/vulkan/icd.d",
+		"--volume=/usr/share/vulkan/implicit_layer.d:/usr/share/vulkan/implicit_layer.d",
+		
+		// Optional: Enable sound
+		"--device=/dev/snd",
+
+		// TODO: add GZ_SIM environment variables
+		// GZ_SIM_RESOURCE_PATH         Colon separated paths used to locate             
+		// resources such as worlds and models.                                         
+	       
+		//  GZ_SIM_SYSTEM_PLUGIN_PATH    Colon separated paths used to                    
+		// locate system plugins.                                                       
+	       
+		//  GZ_SIM_SERVER_CONFIG_PATH    Path to server configuration file.             
+	       
+		//  GZ_GUI_PLUGIN_PATH           Colon separated paths used to locate GUI         
+		// plugins.                                                                       
+		//  GZ_GUI_RESOURCE_PATH    Colon separated paths used to locate GUI              
+		// resources such as configuration files.                             
+
+		// Note: "emergency" "sudo" flag to run the container with all permissions.
+		// This is not recommended for security reasons. Use for debugging only!
+		// "--privileged",
+		
+		// TODO: check the sound support (low priority)
+
+		// Add joystick support if available
+		// "--device=/dev/input/js0:/dev/input/js0",
+		// "--device=/dev/input/event5:/dev/input/event5",
+		// Maps all input devices: this enables plug/unplug behavior
+		// "--volume=/dev/input:/dev/input",
+
+
+		// // TODO: this might cause problems, now just errors spawned. 
+		// // "--device=/dev/input/js0", // Add joystick 11support
+
+		// TODO: add mapping of assets directory docker -> host system
+		// This is example of the outdated version:
+		// "--volume=/home/dkushn/.ignition:/home/ros/.ignition" // Docker assets to Host assets. + run on host: chmod -R 775 ~/.ignition		
+	],
+	"containerEnv": {
+		"DISPLAY": "${localEnv:DISPLAY}", // Needed for GUI try ":0" for windows
+		"WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
+		"XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}",
+		"PULSE_SERVER": "${localEnv:PULSE_SERVER}",
+		
+		// For GPU acceleration
+		// "LIBGL_ALWAYS_INDIRECT" : "1",
+		// "LIBGL_ALWAYS_SOFTWARE": "1", // Needed for software rendering of opengl (? Do we need this?)
+
+		// About this param: 
+		// https://www.notion.so/ucu-lviv-robolab/What-Does-QT_X11_NO_MITSHM-1-Do-1bc65ce1c69680ca9b5bc8aa4ab783df?pvs=4
+		"QT_X11_NO_MITSHM": "1"
+	},
+	// Set *default* container specific settings.json values on container create.
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.shell.linux": "/bin/bash"
+			},
+			"extensions": [
+				"ms-vscode.cpptools-themes",
+				"ms-vscode.cpptools-extension-pack",
+				"althack.ament-task-provider",
+				"betwo.b2-catkin-tools",
+				"DotJoshJohnson.xml",
+				"ms-azuretools.vscode-docker",
+				"ms-iot.vscode-ros",
+				"ms-python.python",
+				"ms-vscode.cpptools",
+				"ms-vscode.cmake-tools",
+				"redhat.vscode-yaml",
+				"smilerobotics.urdf",
+				"streetsidesoftware.code-spell-checker",
+				"twxs.cmake",
+				"yzhang.markdown-all-in-one",
+				"zachflower.uncrustify",
+				"github.copilot"
+			]
+		}
+	},
+
+	"onCreateCommand":  ".devcontainer/on_create_command.sh",
+
+	// TODO: place to the external file (caused annoing errors, postponed this task)
+	// sets the safe directory to the Husky workspace to be able to use git as root
+	"postCreateCommand": "/bin/bash -c \"git config --global --add safe.directory ${containerWorkspaceFolder} && cd ${containerWorkspaceFolder} && ./clean.sh && . ./init.sh && ./build.sh\"",
+	
+	// fix for the GPU access and perfromance in the container
+	"postStartCommand": ".devcontainer/setup_render_group.sh && .devcontainer/setup_input_group.sh"
+
+}

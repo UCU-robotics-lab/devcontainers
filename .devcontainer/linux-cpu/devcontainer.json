@@ -1,0 +1,72 @@
+{
+	"name": "Linux - Husky Development Container CPU",
+	"dockerFile": "Dockerfile",
+	"build": {
+		"args": {
+			"WORKSPACE": "${containerWorkspaceFolder}/ros2_ws"
+		}
+	},
+	"remoteUser": "ros",
+	"runArgs": [
+		"--network=host",
+		"--cap-add=SYS_PTRACE",
+		"--security-opt=seccomp:unconfined",
+		"--security-opt=apparmor:unconfined",
+		"--volume=/tmp/.X11-unix:/tmp/.X11-unix",
+		"--volume=/mnt/wslg:/mnt/wslg",
+		"--ipc=host",
+
+		// uncomment to use intel iGPU
+		"--device=/dev/dri",
+
+		// dkushn: This is needed to run the GUI applications (Linux)
+		"--volume=/dev/dri:/dev/dri"
+	],
+	"containerEnv": {
+		"DISPLAY": "${localEnv:DISPLAY}", // Needed for GUI try ":0" for windows
+		"WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
+		"XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}",
+		"PULSE_SERVER": "${localEnv:PULSE_SERVER}",
+
+		// About this param: 
+		// https://www.notion.so/ucu-lviv-robolab/What-Does-QT_X11_NO_MITSHM-1-Do-1bc65ce1c69680ca9b5bc8aa4ab783df?pvs=4
+		"QT_X11_NO_MITSHM": "1"
+	},
+	// Set *default* container specific settings.json values on container create.
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.shell.linux": "/bin/bash"
+			},
+			"extensions": [
+				"ms-vscode.cpptools-themes",
+				"ms-vscode.cpptools-extension-pack",
+				"althack.ament-task-provider",
+				"betwo.b2-catkin-tools",
+				"DotJoshJohnson.xml",
+				"ms-azuretools.vscode-docker",
+				"ms-iot.vscode-ros",
+				"ms-python.python",
+				"ms-vscode.cpptools",
+				"ms-vscode.cmake-tools",
+				"redhat.vscode-yaml",
+				"smilerobotics.urdf",
+				"streetsidesoftware.code-spell-checker",
+				"twxs.cmake",
+				"yzhang.markdown-all-in-one",
+				"zachflower.uncrustify",
+				"github.copilot" 
+			]
+		}
+	},
+
+	"onCreateCommand":  ".devcontainer/on_create_command.sh",
+
+	// TODO: place to the external file (caused annoing errors, postponed this task)
+	// sets the safe directory to the Husky workspace to be able to use git as root
+	"postCreateCommand": "/bin/bash -c \"git config --global --add safe.directory ${containerWorkspaceFolder} && cd ${containerWorkspaceFolder} && ./clean.sh && . ./init.sh && ./build.sh\"",
+	
+	// fix for the GPU access and perfromance in the container
+	"postStartCommand": ".devcontainer/setup_render_group.sh && .devcontainer/setup_input_group.sh"
+
+}
